@@ -1,13 +1,17 @@
-from .search_utils import load_movies
 import string
+from .search_utils import load_movies, load_stop_words
+from nltk.stem import PorterStemmer
+
 
 def search_handler(query, limit=None):
     movies = load_movies();
+    stop_words = load_stop_words()
+    # print(stop_words)
     # print("Movies: ", movies['movies'][1])
     results = []
-    processed_query = tokenize_text(query)
+    processed_query = tokenize_text(query, stop_words)
     for movie in movies:
-        processed_movie_title = tokenize_text(movie["title"])
+        processed_movie_title = tokenize_text(movie["title"], stop_words)
         if has_matching_token(processed_query, processed_movie_title):
             results.append(movie)
     if limit == None:
@@ -30,8 +34,13 @@ def prepare_text(query):
     return clean_text
 
 
-def tokenize_text(text: str) -> list[str]:
+def tokenize_text(text: str, stop_words: list[str]) -> list[str]:
     clean_text = prepare_text(text)
-    tokenized_text = [t for t in clean_text.split(' ') if len(t) > 0]
+    stemmer = PorterStemmer()
+    tokenized_text = [stemmer.stem(t) for t in clean_text.split() if len(t) > 0 and t not in stop_words]
+    # tokenized_text = []
+    # for word in clean_text.split():
+    #     if len(word) > 0 and word not in stop_words:
+    #         tokenized_text.append(word)
     return tokenized_text
 
