@@ -1,7 +1,6 @@
 import argparse
 import json
-from lib.search_handler import search_handler
-from lib.build_handler import build_handler
+from lib.handlers import search_handler, build_handler
 
 
 def main() -> None:
@@ -22,6 +21,7 @@ def main() -> None:
             results = search_handler(args.query, 5)
             for i, res in enumerate(results, 1):
                 print(f"{i}. {res['title']}")
+
         case "build":
             print("Building inverted index...")
             build_handler()
