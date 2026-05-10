@@ -10,6 +10,7 @@ DATA_PATH = PROJECT_ROOT / "data" / "movies.json"
 STOP_WORD_PATH = PROJECT_ROOT / "data" / "stopwords.txt"
 INDEX_CACHE_PATH = CACHE_DIR / "index.pkl"
 DOCMAP_CACHE_PATH = CACHE_DIR / "docmap.pkl"
+TF_CACHE_PATH = CACHE_DIR / "term_frequencies.pkl"
 
 
 def load_movies() -> list[dict]:

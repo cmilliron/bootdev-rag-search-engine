@@ -1,6 +1,6 @@
 import argparse
 import json
-from lib.handlers import search_handler, build_handler
+from lib.handlers import search_handler, build_handler, tf_search_handler
 
 
 def main() -> None:
@@ -11,6 +11,10 @@ def main() -> None:
     search_parser.add_argument("query", type=str, help="Search query")
 
     subparsers.add_parser("build", help="Build an inverted index.")
+
+    tf_search_parser = subparsers.add_parser("tf", help="Search for term frequency.")
+    tf_search_parser.add_argument("doc_id", type=int, help="Search query")
+    tf_search_parser.add_argument("query_term", type=str, help="Search query")
 
     args = parser.parse_args()
 
@@ -26,6 +30,10 @@ def main() -> None:
             print("Building inverted index...")
             build_handler()
             print("Inverted index built successfully and picked.")
+
+        case "tf":
+            tf = tf_search_handler(args.doc_id, args.query_term)
+            print(f"Term frequency of '{args.term}' in document '{args.doc_id}': {tf}")
         case _:
             parser.print_help()
 

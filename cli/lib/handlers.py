@@ -1,6 +1,6 @@
 
 import pickle
-from collections import defaultdict
+from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
 import string
 import sys
@@ -9,6 +9,7 @@ from .search_utils import (
     load_movies, 
     INDEX_CACHE_PATH, 
     DOCMAP_CACHE_PATH, 
+    TF_CACHE_PATH,
     CACHE_DIR
 )
 
@@ -16,13 +17,28 @@ class InvertedIndex:
     def __init__(self) -> None:
         self.index = defaultdict(set)
         self.doc_map: dict[int, dict] = {}
+        self.term_frequency = defaultdict(Counter)
         self.index_path = INDEX_CACHE_PATH
         self.docmap_path =  DOCMAP_CACHE_PATH
+        self.tf_path = TF_CACHE_PATH
         
 
     def get_documents(self, term):
         doc_ids = self.index.get(term.lower(), set())
         return sorted(list(doc_ids))
+    
+
+    def get_tf(self, doc_id, term):
+        # stop_words = load_stop_words()
+        tokenized_term = tokenize_text(term)
+        if len(tokenized_term) > 1:
+            raise Exception("More than one term.")
+        search_term = tokenized_term[0]
+        # print(search_term)
+        # print(self.term_frequency.get(doc_id)[search_term])
+        # print(self.term_frequency.get(doc_id).get(search_term)) # type: ignore
+        return (self.term_frequency.get(doc_id).get(search_term)) # type: ignore
+        
 
 
     def __add_documents(self, doc_id, text):
@@ -32,6 +48,8 @@ class InvertedIndex:
             if word not in self.index:
                 self.index[word] = set()
             self.index[word].add(doc_id)
+            self.term_frequency[doc_id][word] += 1
+            # print(self.term_frequency[doc_id])
 
 
     def build(self):
@@ -49,6 +67,8 @@ class InvertedIndex:
             pickle.dump(self.index, f)
         with open(self.docmap_path, 'wb') as f:
             pickle.dump(self.doc_map, f)
+        with open(self.tf_path, 'wb') as f:
+            pickle.dump(self.term_frequency, f)
 
 
     def load(self):
@@ -57,6 +77,8 @@ class InvertedIndex:
                 self.index = pickle.load(f)
             with open(self.docmap_path, 'rb') as f:
                 self.doc_map = pickle.load(f)
+            with open(self.tf_path, 'rb') as f:
+                self.term_frequency = pickle.load(f)
         except FileExistsError:
             print("The file was missing! Using default empty data.")
             sys.exit(1)
@@ -99,6 +121,14 @@ def build_handler():
     inverted_index.save()
 
 
+def tf_search_handler(doc_id: int, term):
+    idx = InvertedIndex()
+    idx.load()
+    # print(idx.term_frequency.get(doc_id).get(term))
+    result = idx.get_tf(doc_id, term)
+    return result
+
+
 def prepare_text(query):
     text = query.lower()
     table = str.maketrans("", "", string.punctuation)
@@ -106,7 +136,7 @@ def prepare_text(query):
     return clean_text
 
 
-def tokenize_text(text: str, stop_words: list[str]) -> list[str]:
+def tokenize_text(text: str, stop_words: list[str] = []) -> list[str]:
     clean_text = prepare_text(text)
     stemmer = PorterStemmer()
     tokenized_text = [stemmer.stem(t) for t in clean_text.split() if len(t) > 0 and t not in stop_words]
