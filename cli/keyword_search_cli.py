@@ -5,7 +5,8 @@ from lib.handlers import (
     build_handler, 
     tf_search_handler,
     idf_handler,
-    tfidf_handler
+    tfidf_handler,
+    bm25_idf_handler
     )
 
 
@@ -28,6 +29,9 @@ def main() -> None:
     tfidf_parser = subparsers.add_parser("tfidf", help="Calculate TF-IDF score for a given document ID and term.")
     tfidf_parser.add_argument("doc_id", type=int, help="Document Id.")
     tfidf_parser.add_argument("term", type=str, help="Term to get TF-IDF score for.")
+
+    bm25_idf_parser = subparsers.add_parser("bm25idf", help="Get BM25 IDF score for a given term")
+    bm25_idf_parser.add_argument("term", type=str, help="Term to get BM25 IDF score for")           
 
     args = parser.parse_args()
 
@@ -55,7 +59,10 @@ def main() -> None:
         case "tfidf":
             tf_idf = tfidf_handler(args.doc_id, args.term)
             print(f"TF-IDF score of '{args.term}' in document '{args.doc_id}': {tf_idf:.2f}")
-            pass
+
+        case "bm25idf":
+            bm25_idf = bm25_idf_handler(args.term)
+            print(f"BM25 IDF score of '{args.term}': {bm25_idf:.2f}")
 
         case _:
             parser.print_help()

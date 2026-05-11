@@ -39,6 +39,7 @@ class InvertedIndex:
         return self.term_frequency.get(doc_id)[search_term] # type: ignore
         # return (self.term_frequency.get(doc_id).get(search_term)) # type: ignore
 
+
     def get_idf(self, term:str) -> float:
         tokens = tokenize_text(term)
         if len(tokens) != 1:
@@ -62,6 +63,17 @@ class InvertedIndex:
         tf = self.get_tf(doc_id, term)
         idf = self.get_idf(term)
         return tf * idf
+
+
+    def get_bm25_idf(self, term: str) -> float:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise Exception("Can only have one term.")
+        token = tokens[0]
+        df = len(self.index[token])
+        total_docs = len(self.doc_map)
+        bm25_idf = math.log((total_docs - df + .5)/(df +.5) + 1)
+        return bm25_idf
 
 
     def __add_documents(self, doc_id, text):
@@ -155,6 +167,12 @@ def tfidf_handler(doc_id: int, term: str) -> float:
     idx.load()
     tf_idf = idx.get_tf_idf(doc_id, term)
     return tf_idf
+
+
+def bm25_idf_handler(term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    return idx.get_bm25_idf(term)    
 
 
 
