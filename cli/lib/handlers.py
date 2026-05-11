@@ -50,10 +50,22 @@ class InvertedIndex:
         return idf
         
 
+    def get_tf_idf(self, doc_id: int, term: str) -> float:
+        # tokens = tokenize_text(term)
+        # tf_idf_total = 0.0    # counter for total
+        # for token in tokens:
+        #     tf = self.get_tf(doc_id, token)
+        #     idf = self.get_idf(token)
+        #     tf_idf = tf * idf
+        #     tf_idf_total += tf_idf
+        # return tf_idf_total 
+        tf = self.get_tf(doc_id, term)
+        idf = self.get_idf(term)
+        return tf * idf
+
 
     def __add_documents(self, doc_id, text):
-        stop_words = load_stop_words()
-        words = tokenize_text(text, stop_words)
+        words = tokenize_text(text)
         for word in words: 
             if word not in self.index:
                 self.index[word] = set()
@@ -138,6 +150,14 @@ def idf_handler(term: str):
     return idf
 
 
+def tfidf_handler(doc_id: int, term: str) -> float:
+    idx = InvertedIndex()
+    idx.load()
+    tf_idf = idx.get_tf_idf(doc_id, term)
+    return tf_idf
+
+
+
 # Helper Functions
 def prepare_text(query):
     text = query.lower()
@@ -147,14 +167,12 @@ def prepare_text(query):
 
 
 def tokenize_text(text: str, stop_words: list[str] = []) -> list[str]:
+    stop_words = load_stop_words()
     clean_text = prepare_text(text)
     stemmer = PorterStemmer()
     tokenized_text = [stemmer.stem(t) for t in clean_text.split() if len(t) > 0 and t not in stop_words]
-    # tokenized_text = []
-    # for word in clean_text.split():
-    #     if len(word) > 0 and word not in stop_words:
-    #         tokenized_text.append(word)
     return tokenized_text
+
 
 def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
     for token in query_tokens:
