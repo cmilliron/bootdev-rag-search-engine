@@ -1,6 +1,11 @@
 import argparse
 import json
-from lib.handlers import search_handler, build_handler, tf_search_handler
+from lib.handlers import (
+    search_handler, 
+    build_handler, 
+    tf_search_handler,
+    idf_handler
+    )
 
 
 def main() -> None:
@@ -14,7 +19,10 @@ def main() -> None:
 
     tf_search_parser = subparsers.add_parser("tf", help="Search for term frequency.")
     tf_search_parser.add_argument("doc_id", type=int, help="Search query")
-    tf_search_parser.add_argument("query_term", type=str, help="Search query")
+    tf_search_parser.add_argument("tf_term", type=str, help="Search query")
+
+    idf_search_parser = subparsers.add_parser("idf", help="Shows the inverse document frequence (IDF)")
+    idf_search_parser.add_argument("idf_query", type=str, help="Term to calculate IDF")
 
     args = parser.parse_args()
 
@@ -32,8 +40,12 @@ def main() -> None:
             print("Inverted index built successfully and picked.")
 
         case "tf":
-            tf = tf_search_handler(args.doc_id, args.query_term)
-            print(f"Term frequency of '{args.term}' in document '{args.doc_id}': {tf}")
+            tf = tf_search_handler(args.doc_id, args.tf_term)
+            print(f"Term frequency of '{args.tf_term}' in document '{args.doc_id}': {tf}")
+        
+        case 'idf':
+            idf = idf_handler(args.idf_query);
+            print(f"Inverse document frequency of '{args.idf_query}': {idf:.2f}")
         case _:
             parser.print_help()
 

@@ -1,5 +1,6 @@
 
 import pickle
+import math
 from collections import defaultdict, Counter
 from nltk.stem import PorterStemmer
 import string
@@ -28,16 +29,25 @@ class InvertedIndex:
         return sorted(list(doc_ids))
     
 
-    def get_tf(self, doc_id, term):
+    def get_tf(self, doc_id, term) -> int:
         # stop_words = load_stop_words()
         tokenized_term = tokenize_text(term)
         if len(tokenized_term) > 1:
             raise Exception("More than one term.")
         search_term = tokenized_term[0]
-        # print(search_term)
-        # print(self.term_frequency.get(doc_id)[search_term])
-        # print(self.term_frequency.get(doc_id).get(search_term)) # type: ignore
-        return (self.term_frequency.get(doc_id).get(search_term)) # type: ignore
+
+        return self.term_frequency.get(doc_id)[search_term] # type: ignore
+        # return (self.term_frequency.get(doc_id).get(search_term)) # type: ignore
+
+    def get_idf(self, term:str) -> float:
+        tokens = tokenize_text(term)
+        if len(tokens) != 1:
+            raise ValueError("term must be a single token")
+        token = tokens[0]
+        num_docs = len(self.doc_map)
+        term_doc_count = len(self.index[token])
+        idf = math.log((num_docs + 1) / (term_doc_count + 1))
+        return idf
         
 
 
@@ -127,6 +137,20 @@ def tf_search_handler(doc_id: int, term):
     # print(idx.term_frequency.get(doc_id).get(term))
     result = idx.get_tf(doc_id, term)
     return result
+
+def idf_handler(term: str):
+    tokens = tokenize_text(term)
+    token = tokens[0]
+    idx = InvertedIndex()
+    idx.load()
+    num_docs = len(idx.doc_map)
+    counter = 0
+    for doc_id in idx.doc_map:
+        frequency = idx.get_tf(doc_id, token)
+        if frequency > 0:
+            counter += 1
+    idf = math.log((num_docs + 1) / (counter + 1))
+    return idf
 
 
 def prepare_text(query):
