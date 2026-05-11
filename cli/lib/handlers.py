@@ -97,6 +97,7 @@ class InvertedIndex:
             sys.exit(1)
 
 
+#  Command Handler Functions
 def search_handler(query, limit=5):
     movies = load_movies();
     stop_words = load_stop_words()
@@ -117,14 +118,6 @@ def search_handler(query, limit=5):
     return results
 
 
-def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
-    for token in query_tokens:
-        for movie_token in title_tokens:
-            if token in movie_token:
-                return True
-    return False
-
-
 def build_handler():
     inverted_index = InvertedIndex()
     inverted_index.build()
@@ -139,20 +132,13 @@ def tf_search_handler(doc_id: int, term):
     return result
 
 def idf_handler(term: str):
-    tokens = tokenize_text(term)
-    token = tokens[0]
     idx = InvertedIndex()
     idx.load()
-    num_docs = len(idx.doc_map)
-    counter = 0
-    for doc_id in idx.doc_map:
-        frequency = idx.get_tf(doc_id, token)
-        if frequency > 0:
-            counter += 1
-    idf = math.log((num_docs + 1) / (counter + 1))
+    idf = idx.get_idf(term)
     return idf
 
 
+# Helper Functions
 def prepare_text(query):
     text = query.lower()
     table = str.maketrans("", "", string.punctuation)
@@ -169,3 +155,10 @@ def tokenize_text(text: str, stop_words: list[str] = []) -> list[str]:
     #     if len(word) > 0 and word not in stop_words:
     #         tokenized_text.append(word)
     return tokenized_text
+
+def has_matching_token(query_tokens: list[str], title_tokens: list[str]) -> bool:
+    for token in query_tokens:
+        for movie_token in title_tokens:
+            if token in movie_token:
+                return True
+    return False
