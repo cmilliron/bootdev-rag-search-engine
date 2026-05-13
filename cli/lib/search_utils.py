@@ -17,6 +17,7 @@ INDEX_CACHE_PATH = CACHE_DIR / "index.pkl"
 DOCMAP_CACHE_PATH = CACHE_DIR / "docmap.pkl"
 TF_CACHE_PATH = CACHE_DIR / "term_frequencies.pkl"
 DOC_LENGTHS_PATH = CACHE_DIR / "doc_lengths.pkl"
+EMBEDDINGS_CACHE_PATH = CACHE_DIR / "movie_embeddings.npy"
 
 
 def load_movies() -> list[dict]:
