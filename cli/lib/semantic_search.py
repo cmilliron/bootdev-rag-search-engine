@@ -7,6 +7,7 @@ from lib.search_utils import (
     DEFAULT_SEARCH_LIMIT, 
     DEFAULT_CHUNK_SIZE
     )
+import re
 
 class SemanticSearch:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -119,25 +120,47 @@ def cosine_similarity_search(query: str, limit: int = DEFAULT_SEARCH_LIMIT):
         print(f"    {result["description"][:25]}...")
 
 
-def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE):
+def fixed_size_chunking(text: str, chunk_size: int = DEFAULT_CHUNK_SIZE, overlap: int = 0):
     words = text.split()
-    chunks = []
     num_words = len(words)
+    chunks = []
     i = 0
     while i < num_words:
         current_chunk = words[i: i + chunk_size]
-        chunks.append(current_chunk)
-        i += chunk_size
+        chunks.append(" ".join(current_chunk))
+        if i + chunk_size >= num_words:
+            break
+        i = i - overlap + chunk_size
     return chunks
 
 
-def chunck_command(text: str, size: int = DEFAULT_CHUNK_SIZE):
-    chunks = fixed_size_chunking(text, size)
+def chunk_command(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = 0):
+    chunks = fixed_size_chunking(text, size, overlap)
     print(f"Chunking {len(text)} characters")
     for i, c in enumerate(chunks, 1):
-        print(f"{i}. {" ".join(c)}")
+        print(f"{i}. {c}")
     return chunks
 
+def create_semantic_chunks(text: str, chunk_size: int = 4, overlap: int = 0):
+    sentences = re.split(r"(?<=[.!?])\s+", text)
+    num_sent = len(sentences)
+    chunks = []
+    i = 0
+    while i < num_sent:
+        current_chunk = sentences[i: i + chunk_size]
+        chunks.append(" ".join(current_chunk))
+        if i + chunk_size >= num_sent:
+            break
+        i = i - overlap + chunk_size
+    return chunks
+
+
+def semantic_chunk_command(text: str, chunk_size: int = 4, overlap: int = 0):
+    chunks = create_semantic_chunks(text, chunk_size, overlap)
+    print(f"Semantically chunking {len(text)} characters")
+    for i, c in enumerate(chunks, 1):
+        print(f"{i}. {c}")
+    return chunks
 
 
 
