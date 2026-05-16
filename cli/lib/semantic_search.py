@@ -5,9 +5,12 @@ from lib.search_utils import (
     load_movies, 
     CACHE_DIR, 
     DEFAULT_SEARCH_LIMIT, 
-    DEFAULT_CHUNK_SIZE
+    DEFAULT_CHUNK_SIZE,
+    CHUNK_EMBEDDINGS_PATH,
+    CHUNK_METADATA_PATH
     )
 import re
+import json
 
 class SemanticSearch:
     def __init__(self, model_name='all-MiniLM-L6-v2'):
@@ -23,6 +26,7 @@ class SemanticSearch:
             raise ValueError("cannot generate embedding for empty text")
         embedding = self.model.encode(text, show_progress_bar=True)
         return embedding
+
 
     def build_embeddings(self, documents):
         self.documents = documents
@@ -74,14 +78,70 @@ class SemanticSearch:
         return formated_results
 
 
+class ChunkedSemanticSearch(SemanticSearch):
+    def __init__(self, model_name="all-MiniLM-L6-v2") -> None:
+        super().__init__(model_name)
+        self.chunk_embeddings = None
+        self.chunk_metadata = None
+        self.chunk_embedding_path = CHUNK_EMBEDDINGS_PATH
+        self.chunk_metadata_path = CHUNK_METADATA_PATH
+
+
+    def build_chunk_embeddings(self, documents):
+        self.documents = documents
+        self.document_map = {}
+        for doc in documents: 
+            self.document_map[doc['id']] = doc
+        chunks = []
+        chunks_metadata = [{}]
+        for doc_idx, doc in enumerate(self.documents):
+            description = doc.get('description', "")
+            if not description.strip():
+                continue
+            semantic_chunks = create_semantic_chunks(description, 4, 1)
+            for i, sem_chunk in enumerate(semantic_chunks):
+                chunks.append(sem_chunk)
+                chunks_metadata.append({
+                    "movie_idx": doc_idx,
+                    "chunk_idx": i,
+                    "total_chunks": len(semantic_chunks)
+                })
+        self.chunk_embeddings = self.model.encode(chunks, show_progress_bar=True)
+        self.chunk_metadata = chunks_metadata
+        self.save_chunk_embedding(len(chunks))
+        return self.chunk_embeddings
 
     
+    def save_chunk_embedding(self, num_chunks):
+        CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        if self.chunk_embeddings is not None:
+            np.save(self.chunk_embedding_path, self.chunk_embeddings)
+        if self.chunk_metadata is not None:
+            with open(self.chunk_metadata_path, "w") as f:
+              json.dump({"chunks": self.chunk_metadata, "total_chunks": len(num_chunks)}, f, indent=2)     
+
+
+    def load_or_create_chunk_embeddings(self, documents: list[dict]) -> np.ndarray:
+        self.documents = documents
+        self.document_map = {}
+        for doc in documents: 
+            self.document_map[doc['id']] = doc
+        if self.chunk_embedding_path.exists() and self.chunk_metadata_path.exists():
+            self.chunk_embeddings = np.load(self.chunk_embedding_path)
+            with open(self.chunk_metadata_path, "r") as json_file:
+                data = json.load(json_file) 
+                self.chunk_metadata = data['chunks']
+            # if len(self.chunk_embeddings) == len(self.documents):
+            return self.chunk_embeddings
+        return self.build_chunk_embeddings(documents)
+
 
 
 def verify_model():
     ss = SemanticSearch()
     print(f"Model loaded: {ss.model}")
     print(f"Max sequence length: {ss.model.max_seq_length}")
+
 
 def embed_text(text):
     semantic_search = SemanticSearch()
@@ -141,7 +201,8 @@ def chunk_command(text: str, size: int = DEFAULT_CHUNK_SIZE, overlap: int = 0):
         print(f"{i}. {c}")
     return chunks
 
-def create_semantic_chunks(text: str, chunk_size: int = 4, overlap: int = 0):
+
+def create_semantic_chunks(text: str, chunk_size: int = 4, overlap: int = 0) -> list[str]:
     sentences = re.split(r"(?<=[.!?])\s+", text)
     num_sent = len(sentences)
     chunks = []
@@ -161,6 +222,13 @@ def semantic_chunk_command(text: str, chunk_size: int = 4, overlap: int = 0):
     for i, c in enumerate(chunks, 1):
         print(f"{i}. {c}")
     return chunks
+
+def embed_chunk_command():
+    movies = load_movies()
+    chunked_semantic_search = ChunkedSemanticSearch()
+    chunked_semantic_search.load_or_create_chunk_embeddings(movies)
+    embeddings = chunked_semantic_search.chunk_embeddings
+    print(f"Generated {len(embeddings)} chunked embeddings")
 
 
 
